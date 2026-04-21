@@ -709,6 +709,8 @@ let caughtFish = [];
 const soundtrackAudio = new Audio('soundtrack.mp3');
 const waterAudio = new Audio('water2.mp3');
 const fishCatchAudio = new Audio('fishcatch.mp3');
+let fishCatchBuffer = null;
+let fishCatchBufferPromise = null;
 
 soundtrackAudio.loop = true;
 waterAudio.loop = true;
@@ -722,7 +724,43 @@ fishCatchAudio.volume = 0.8;
 
 let soundtrackStarted = false;
 
+function loadFishCatchBuffer() {
+  if (window.location.protocol === 'file:') return Promise.resolve(null);
+  if (fishCatchBuffer) return Promise.resolve(fishCatchBuffer);
+  if (fishCatchBufferPromise) return fishCatchBufferPromise;
+  try {
+    const ctx = getCtx();
+    fishCatchBufferPromise = fetch('fishcatch.mp3')
+      .then(response => {
+        if (!response.ok) throw new Error('Unable to load fishcatch.mp3');
+        return response.arrayBuffer();
+      })
+      .then(arrayBuffer => ctx.decodeAudioData(arrayBuffer))
+      .then(buffer => {
+        fishCatchBuffer = buffer;
+        return buffer;
+      })
+      .catch(() => null);
+    return fishCatchBufferPromise;
+  } catch (e) {
+    return Promise.resolve(null);
+  }
+}
+
+function unlockFishingAudio() {
+  try {
+    const ctx = getCtx();
+    if (ctx.state === 'suspended') ctx.resume().catch(() => {});
+    const source = ctx.createBufferSource();
+    source.buffer = ctx.createBuffer(1, 1, ctx.sampleRate);
+    source.connect(ctx.destination);
+    source.start(0);
+    loadFishCatchBuffer();
+  } catch (e) {}
+}
+
 function startSoundtrackOnce() {
+  unlockFishingAudio();
   if (soundtrackStarted) return;
   soundtrackStarted = true;
   soundtrackAudio.play().catch(() => {
@@ -742,6 +780,18 @@ function stopGameWaterAudio() {
 
 function playFishCatchSound() {
   try {
+    const ctx = getCtx();
+    if (fishCatchBuffer) {
+      const source = ctx.createBufferSource();
+      const gain = ctx.createGain();
+      source.buffer = fishCatchBuffer;
+      gain.gain.value = 0.8;
+      source.connect(gain);
+      gain.connect(ctx.destination);
+      source.start(0);
+      return;
+    }
+    loadFishCatchBuffer();
     fishCatchAudio.currentTime = 0;
     fishCatchAudio.play().catch(() => {});
   } catch (e) {}
