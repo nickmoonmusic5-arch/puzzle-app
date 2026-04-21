@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Activity Menu</title>
+    <style>
+        :root {
+            color-scheme: light;
+            --page: #eef3ed;
+            --panel: rgba(255, 252, 246, 0.94);
+            --ink: #24323a;
+            --muted: #68757b;
+            --line: #d8d1c4;
+            --accent: #1f6f68;
+            --accent-dark: #155852;
+            --gold: #c58f2c;
+            --shadow: 0 18px 45px rgba(34, 45, 48, 0.14);
+            --font-main: Arial, Helvetica, sans-serif;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            background:
+                linear-gradient(180deg, rgba(255, 255, 255, 0.72), rgba(255, 255, 255, 0.32)),
+                var(--page);
+            color: var(--ink);
+            font-family: var(--font-main);
+        }
+
+        button,
+        select {
+            font: inherit;
+        }
+
+        main {
+            min-height: 100vh;
+            display: grid;
+            align-content: center;
+            gap: 24px;
+            width: min(1120px, 100%);
+            margin: 0 auto;
+            padding: 28px;
+        }
+
+        .top-bar {
+            display: flex;
+            align-items: end;
+            justify-content: space-between;
+            gap: 18px;
+        }
+
+        h1 {
+            margin: 0 0 8px;
+            font-size: clamp(2.2rem, 6vw, 4.4rem);
+            line-height: 1;
+            letter-spacing: 0;
+        }
+
+        .subtitle {
+            margin: 0;
+            color: var(--muted);
+            font-size: 1.18rem;
+            line-height: 1.45;
+        }
+
+        .font-control {
+            display: grid;
+            gap: 7px;
+            min-width: 210px;
+            color: var(--muted);
+            font-weight: 800;
+        }
+
+        select {
+            min-height: 50px;
+            border: 1px solid var(--line);
+            border-radius: 6px;
+            background: #fffdf8;
+            color: var(--ink);
+            padding: 0 14px;
+            font-size: 1.05rem;
+            box-shadow: 0 7px 18px rgba(34, 45, 48, 0.07);
+        }
+
+        .menu-grid {
+            display: grid;
+            grid-template-columns: repeat(5, minmax(0, 1fr));
+            gap: 16px;
+        }
+
+        .activity-card {
+            min-height: 260px;
+            display: grid;
+            grid-template-rows: 1fr auto;
+            overflow: hidden;
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            background: var(--panel);
+            color: inherit;
+            text-decoration: none;
+            box-shadow: var(--shadow);
+            transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+        }
+
+        .activity-card:hover,
+        .activity-card:focus-visible {
+            transform: translateY(-3px);
+            border-color: rgba(31, 111, 104, 0.56);
+            box-shadow: 0 22px 55px rgba(34, 45, 48, 0.18);
+            outline: none;
+        }
+
+        .activity-art {
+            min-height: 150px;
+            display: grid;
+            place-items: center;
+            position: relative;
+            overflow: hidden;
+            background: #dfe9e4;
+        }
+
+        .activity-art img {
+            width: 100%;
+            height: 100%;
+            display: block;
+            object-fit: cover;
+        }
+
+        .activity-art::after {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(36, 50, 58, 0.12));
+            pointer-events: none;
+        }
+
+        .simple-art {
+            padding: 20px;
+        }
+
+        .simple-art svg {
+            width: min(118px, 68%);
+            height: auto;
+            display: block;
+        }
+
+        .activity-copy {
+            display: grid;
+            gap: 8px;
+            padding: 18px;
+        }
+
+        h2 {
+            margin: 0;
+            font-size: 1.55rem;
+            line-height: 1.12;
+            letter-spacing: 0;
+        }
+
+        .activity-copy p {
+            margin: 0;
+            color: var(--muted);
+            font-size: 1.02rem;
+            line-height: 1.45;
+        }
+
+        .status {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            justify-self: start;
+            min-height: 34px;
+            margin-top: 6px;
+            border-radius: 6px;
+            background: #e6f0ec;
+            color: var(--accent-dark);
+            padding: 0 10px;
+            font-size: 0.95rem;
+            font-weight: 800;
+        }
+
+        .status.pending {
+            background: #f4ead8;
+            color: #765218;
+        }
+
+        @media (max-width: 920px) {
+            main {
+                align-content: start;
+            }
+
+            .top-bar {
+                align-items: stretch;
+                flex-direction: column;
+            }
+
+            .font-control {
+                min-width: 0;
+                max-width: 320px;
+            }
+
+            .menu-grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+        }
+
+        @media (max-width: 560px) {
+            main {
+                padding: 18px;
+            }
+
+            .menu-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .activity-card {
+                min-height: 230px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <main>
+        <header class="top-bar">
+            <div>
+                <h1>Choose an activity</h1>
+                <p class="subtitle">A simple menu for testing the games on different screens.</p>
+            </div>
+            <label class="font-control">
+                Font
+                <select id="fontSelect">
+                    <option value="Arial, Helvetica, sans-serif">Arial</option>
+                    <option value="Verdana, Geneva, sans-serif">Verdana</option>
+                    <option value="Trebuchet MS, Arial, sans-serif">Trebuchet</option>
+                    <option value="Georgia, serif">Georgia</option>
+                </select>
+            </label>
+        </header>
+
+        <nav class="menu-grid" aria-label="Activity choices">
+            <a class="activity-card" href="BALLOON/balloon-drift-side-scroll-v25.html">
+                <div class="activity-art">
+                    <img src="BALLOON/Colourful hot air balloon in flight.png" alt="">
+                </div>
+                <div class="activity-copy">
+                    <h2>Balloon</h2>
+                    <p>Drift across the skyline and tap the balloon.</p>
+                    <span class="status">Ready</span>
+                </div>
+            </a>
+
+            <a class="activity-card" href="FISHING/fishfinal-timeout-paused.html">
+                <div class="activity-art">
+                    <img src="FISHING/clownfish.png" alt="">
+                </div>
+                <div class="activity-copy">
+                    <h2>Fishing</h2>
+                    <p>Calm catching game for touch screens.</p>
+                    <span class="status">Ready</span>
+                </div>
+            </a>
+
+            <a class="activity-card" href="jignick/jignick_varied_pieces_audio.html">
+                <div class="activity-art">
+                    <img src="jignick/idea.png" alt="">
+                </div>
+                <div class="activity-copy">
+                    <h2>Jigsaw</h2>
+                    <p>Photo puzzles with gentle controls and larger pieces.</p>
+                    <span class="status">Ready</span>
+                </div>
+            </a>
+
+            <a class="activity-card" href="SNAKES%20AND%20LADDERS/snakes_ladders_calm.html">
+                <div class="activity-art">
+                    <img src="SNAKES%20AND%20LADDERS/board.png" alt="">
+                </div>
+                <div class="activity-copy">
+                    <h2>Snakes and Ladders</h2>
+                    <p>A familiar board game with clear buttons.</p>
+                    <span class="status">Ready</span>
+                </div>
+            </a>
+
+            <a class="activity-card" href="SOLITAIRE/solitaire_vintage_paper_dragfix5.html">
+                <div class="activity-art">
+                    <img src="SOLITAIRE/BACK%20OF%20CARD.png" alt="">
+                </div>
+                <div class="activity-copy">
+                    <h2>Solitaire</h2>
+                    <p>A clear card game with vintage paper styling.</p>
+                    <span class="status">Ready</span>
+                </div>
+            </a>
+        </nav>
+    </main>
+
+    <script>
+        const fontSelect = document.getElementById('fontSelect');
+        const savedFont = localStorage.getItem('activityMenuFont');
+
+        if (savedFont) {
+            fontSelect.value = savedFont;
+            document.documentElement.style.setProperty('--font-main', savedFont);
+        }
+
+        fontSelect.addEventListener('change', () => {
+            document.documentElement.style.setProperty('--font-main', fontSelect.value);
+            localStorage.setItem('activityMenuFont', fontSelect.value);
+        });
+    </script>
+</body>
+</html>

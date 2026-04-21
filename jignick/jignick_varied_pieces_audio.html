@@ -1,0 +1,1156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jignick Jigsaw</title>
+    <style>
+        :root {
+            color-scheme: light;
+            --page: #f4f1ea;
+            --panel: #fffaf0;
+            --ink: #21313a;
+            --muted: #66737a;
+            --line: #d8cfbf;
+            --accent: #23746e;
+            --accent-strong: #165b56;
+            --gold: #d49b2a;
+            --shadow: 0 18px 50px rgba(34, 43, 48, 0.18);
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            overflow: hidden;
+            background:
+                linear-gradient(180deg, rgba(255,255,255,0.52), rgba(255,255,255,0)),
+                var(--page);
+            color: var(--ink);
+            font-family: Arial, Helvetica, sans-serif;
+        }
+
+        button, select, input {
+            font: inherit;
+        }
+
+        .screen {
+            min-height: 100vh;
+            width: 100vw;
+        }
+
+        #menu {
+            display: grid;
+            place-items: center;
+            padding: 24px;
+            overflow: auto;
+        }
+
+        .menu-panel {
+            width: min(1080px, 100%);
+            display: grid;
+            gap: 22px;
+            background: var(--panel);
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            box-shadow: var(--shadow);
+            padding: 24px;
+        }
+
+        .menu-head {
+            display: grid;
+            grid-template-columns: minmax(260px, 1fr) minmax(260px, 0.55fr);
+            gap: 22px;
+            align-items: end;
+        }
+
+        .photo-pick {
+            appearance: none;
+            border: 3px solid transparent;
+            border-radius: 8px;
+            padding: 8px;
+            margin: 0;
+            width: 100%;
+            background: #ffffff;
+            cursor: pointer;
+            color: inherit;
+            text-align: left;
+            box-shadow: 0 8px 22px rgba(27, 35, 39, 0.12);
+            transition: border-color 0.18s ease, transform 0.18s ease;
+        }
+
+        .photo-pick img {
+            display: block;
+            width: 100%;
+            aspect-ratio: 3 / 2;
+            object-fit: cover;
+            border-radius: 6px;
+        }
+
+        .photo-pick:hover {
+            transform: translateY(-2px);
+        }
+
+        .photo-pick[aria-pressed="true"] {
+            border-color: var(--accent);
+        }
+
+        .photo-name {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 46px;
+            padding: 8px 4px 0;
+            color: var(--ink);
+            font-size: 1.06rem;
+            font-weight: 800;
+            text-align: center;
+        }
+
+        .upload-row {
+            display: flex;
+            justify-content: flex-start;
+            margin-bottom: 16px;
+        }
+
+        .upload-input {
+            position: absolute;
+            inline-size: 1px;
+            block-size: 1px;
+            overflow: hidden;
+            clip: rect(0 0 0 0);
+            clip-path: inset(50%);
+            white-space: nowrap;
+        }
+
+        .upload-button {
+            min-height: 52px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border: 2px dashed var(--accent);
+            border-radius: 6px;
+            background: #ffffff;
+            color: var(--accent-strong);
+            font-weight: 800;
+            padding: 0 18px;
+            cursor: pointer;
+        }
+
+        .upload-button:hover {
+            background: #e8f3ee;
+        }
+
+        .picture-grid {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 14px;
+        }
+
+        .photo-pick:focus-visible,
+        .toolbar button:focus-visible,
+        .toolbar select:focus-visible,
+        .primary:focus-visible,
+        .upload-input:focus-visible + .upload-button {
+            outline: 4px solid rgba(35, 116, 110, 0.3);
+            outline-offset: 4px;
+        }
+
+        h1 {
+            margin: 0 0 12px;
+            font-size: 2.7rem;
+            line-height: 1.05;
+        }
+
+        .intro {
+            margin: 0 0 24px;
+            color: var(--muted);
+            font-size: 1.18rem;
+            line-height: 1.5;
+        }
+
+        .settings {
+            display: grid;
+            gap: 14px;
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: grid;
+            gap: 7px;
+            color: var(--muted);
+            font-weight: 700;
+        }
+
+        select {
+            min-height: 50px;
+            border: 1px solid var(--line);
+            border-radius: 6px;
+            background: white;
+            color: var(--ink);
+            padding: 0 14px;
+            font-size: 1.05rem;
+        }
+
+        .primary, .toolbar button {
+            min-height: 52px;
+            border: 0;
+            border-radius: 6px;
+            background: var(--accent);
+            color: white;
+            font-weight: 800;
+            padding: 0 18px;
+            cursor: pointer;
+            box-shadow: 0 6px 16px rgba(35, 116, 110, 0.2);
+        }
+
+        .primary:hover, .toolbar button:hover {
+            background: var(--accent-strong);
+        }
+
+        .back-room {
+            min-height: 56px;
+            border: 2px solid #165b56;
+            border-radius: 6px;
+            background: #fffaf0;
+            color: #165b56;
+            font-size: 1.08rem;
+            font-weight: 800;
+            padding: 0 18px;
+            cursor: pointer;
+        }
+
+        .back-room:hover {
+            background: #e8f3ee;
+        }
+
+        .menu-back {
+            justify-self: start;
+        }
+
+        #game {
+            display: none;
+            grid-template-rows: auto 1fr;
+            gap: 0;
+            padding: 0;
+            background: #d3b58e url('table.png') center / cover no-repeat;
+        }
+
+        .toolbar {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            position: relative;
+            z-index: 2;
+            background: rgba(255, 250, 240, 0.92);
+            border: 1px solid var(--line);
+            border-width: 0 0 1px;
+            border-radius: 0;
+            padding: 10px;
+            box-shadow: 0 8px 26px rgba(34, 43, 48, 0.1);
+        }
+
+        .toolbar button {
+            min-width: 118px;
+            background: #ffffff;
+            color: var(--ink);
+            border: 1px solid var(--line);
+            box-shadow: none;
+        }
+
+        .toolbar .back-room {
+            background: #fffaf0;
+            color: #165b56;
+            border: 2px solid #165b56;
+        }
+
+        .toolbar button[aria-pressed="true"] {
+            background: var(--accent);
+            color: white;
+            border-color: var(--accent);
+        }
+
+        .toolbar .danger {
+            color: #7f251f;
+        }
+
+        .counter {
+            min-height: 52px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0 16px;
+            border: 1px solid var(--line);
+            border-radius: 6px;
+            background: white;
+            color: var(--muted);
+            font-weight: 800;
+        }
+
+        .board-wrap {
+            min-height: 0;
+            display: grid;
+            place-items: stretch;
+            overflow: hidden;
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+            max-width: none;
+            max-height: none;
+            background: transparent;
+            border: 0;
+            border-radius: 0;
+            box-shadow: none;
+            cursor: grab;
+            touch-action: none;
+        }
+
+        canvas.dragging {
+            cursor: grabbing;
+        }
+
+        #success {
+            display: none;
+            position: fixed;
+            inset: 0;
+            place-items: center;
+            background: rgba(33, 49, 58, 0.42);
+            padding: 18px;
+        }
+
+        .success-panel {
+            width: min(430px, 100%);
+            background: white;
+            color: var(--ink);
+            border-radius: 8px;
+            box-shadow: var(--shadow);
+            padding: 30px;
+            text-align: center;
+        }
+
+        .success-panel h2 {
+            margin: 0 0 10px;
+            font-size: 2.2rem;
+        }
+
+        .success-panel p {
+            color: var(--muted);
+            font-size: 1.1rem;
+            margin: 0 0 20px;
+        }
+
+        @media (max-width: 760px) {
+            body { overflow: auto; }
+
+            #game {
+                min-height: 100vh;
+            }
+
+            .board-wrap {
+                place-items: start center;
+            }
+
+            .menu-head,
+            .menu-panel {
+                grid-template-columns: 1fr;
+                padding: 16px;
+            }
+
+            .picture-grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+
+            h1 {
+                font-size: 2.15rem;
+            }
+
+            .intro {
+                font-size: 1.04rem;
+            }
+
+            canvas {
+                max-height: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <main id="menu" class="screen">
+        <section class="menu-panel" aria-labelledby="title">
+            <button class="back-room menu-back" id="menuBackRoomBtn" type="button">Back to Room</button>
+            <div class="menu-head">
+                <div>
+                    <h1 id="title">Jignick Jigsaw</h1>
+                    <p class="intro">Choose a picture, then pick an easy or more challenging puzzle size.</p>
+                </div>
+                <div class="settings">
+                    <label>
+                        Pieces
+                        <select id="sizeSelect">
+                            <option value="3x2">6 pieces, easiest</option>
+                            <option value="4x3" selected>12 pieces, gentle</option>
+                            <option value="5x4">20 pieces, harder</option>
+                        </select>
+                    </label>
+                    <button class="primary" id="startBtn" type="button">Start Puzzle</button>
+                </div>
+            </div>
+            <div>
+                <div class="upload-row">
+                    <input class="upload-input" id="photoUpload" type="file" accept="image/*">
+                    <label class="upload-button" for="photoUpload">Use my photo</label>
+                </div>
+                <div class="picture-grid" id="pictureGrid" aria-label="Choose a puzzle picture"></div>
+            </div>
+        </section>
+    </main>
+
+    <main id="game" class="screen">
+        <div class="toolbar" aria-label="Puzzle controls">
+            <button id="gameBackRoomBtn" class="back-room" type="button">Back to Room</button>
+            <button id="guideBtn" type="button" aria-pressed="true">Hide Guide</button>
+            <button id="scatterBtn" type="button">Shuffle</button>
+            <button id="menuBtn" class="danger" type="button">Menu</button>
+            <div class="counter" id="counter" aria-live="polite">0 placed</div>
+        </div>
+        <div class="board-wrap">
+            <canvas id="puzzleCanvas" width="1200" height="760" aria-label="Jigsaw puzzle board"></canvas>
+        </div>
+    </main>
+
+    <div id="success" role="dialog" aria-modal="true" aria-labelledby="successTitle">
+        <div class="success-panel">
+            <h2 id="successTitle">Lovely work!</h2>
+            <p>The picture is complete.</p>
+            <button class="primary" id="againBtn" type="button">Play Again</button>
+            <button class="back-room" id="successBackRoomBtn" type="button">Back to Room</button>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('puzzleCanvas');
+        const ctx = canvas.getContext('2d');
+        const menu = document.getElementById('menu');
+        const game = document.getElementById('game');
+        const startBtn = document.getElementById('startBtn');
+        const pictureGrid = document.getElementById('pictureGrid');
+        const photoUpload = document.getElementById('photoUpload');
+        const guideBtn = document.getElementById('guideBtn');
+        const scatterBtn = document.getElementById('scatterBtn');
+        const menuBtn = document.getElementById('menuBtn');
+        const menuBackRoomBtn = document.getElementById('menuBackRoomBtn');
+        const gameBackRoomBtn = document.getElementById('gameBackRoomBtn');
+        const successBackRoomBtn = document.getElementById('successBackRoomBtn');
+        const againBtn = document.getElementById('againBtn');
+        const sizeSelect = document.getElementById('sizeSelect');
+        const counter = document.getElementById('counter');
+        const success = document.getElementById('success');
+        const image = new Image();
+        const tableImage = new Image();
+
+        let rows = 3;
+        let cols = 4;
+        let scale = 1;
+        let boardX = 0;
+        let boardY = 0;
+        let boardW = 0;
+        let boardH = 0;
+        let cellW = 0;
+        let cellH = 0;
+        let tab = 0;
+        let pieces = [];
+        let selectedPiece = null;
+        let hoverPiece = null;
+        let pointerOffset = { x: 0, y: 0 };
+        let guideVisible = true;
+        let hasWon = false;
+        let rafId = null;
+        let selectedPuzzle = 0;
+        let currentImageSrc = '';
+        let uploadedPuzzleUrl = '';
+        const placementSounds = ['piece1.mp3', 'piece2.mp3', 'piece3.mp3'];
+        const soundCache = new Map();
+        const returnUrl = new URLSearchParams(window.location.search).get('return');
+
+        const puzzles = [
+            { name: 'Newcastle Quayside', src: 'idea.png' },
+            { name: 'Abbey Park', src: 'abbeypark.png' },
+            { name: 'Molloys Corner', src: 'molloys.png' },
+            { name: 'Leicester Lights', src: 'nick.png' }
+        ];
+
+        currentImageSrc = puzzles[selectedPuzzle].src;
+        image.src = currentImageSrc;
+        tableImage.src = 'table.png';
+
+        startBtn.addEventListener('click', startGame);
+        photoUpload.addEventListener('change', handlePhotoUpload);
+        menuBackRoomBtn.addEventListener('click', goBackToRoom);
+        gameBackRoomBtn.addEventListener('click', goBackToRoom);
+        successBackRoomBtn.addEventListener('click', goBackToRoom);
+        againBtn.addEventListener('click', () => {
+            success.style.display = 'none';
+            startGame();
+        });
+        menuBtn.addEventListener('click', showMenu);
+        scatterBtn.addEventListener('click', () => {
+            scatterPieces();
+            updateCounter();
+        });
+        guideBtn.addEventListener('click', () => {
+            guideVisible = !guideVisible;
+            guideBtn.textContent = guideVisible ? 'Hide Guide' : 'Show Guide';
+            guideBtn.setAttribute('aria-pressed', String(guideVisible));
+        });
+
+        window.addEventListener('resize', () => {
+            if (game.style.display === 'grid') startGame(true);
+        });
+
+        canvas.addEventListener('pointerdown', onPointerDown);
+        canvas.addEventListener('pointermove', onPointerMove);
+        canvas.addEventListener('pointerup', onPointerUp);
+        canvas.addEventListener('pointercancel', onPointerUp);
+        canvas.addEventListener('pointerleave', () => {
+            if (!selectedPiece) hoverPiece = null;
+        });
+
+        renderPictureChoices();
+
+        function goBackToRoom() {
+            if (returnUrl) {
+                location.href = returnUrl;
+                return;
+            }
+            history.back();
+        }
+
+        function renderPictureChoices() {
+            pictureGrid.innerHTML = '';
+            puzzles.forEach((puzzle, index) => {
+                const button = document.createElement('button');
+                const thumbnail = document.createElement('img');
+                const label = document.createElement('span');
+
+                button.className = 'photo-pick';
+                button.type = 'button';
+                button.setAttribute('aria-pressed', String(index === selectedPuzzle));
+                thumbnail.src = puzzle.src;
+                thumbnail.alt = `${puzzle.name} puzzle picture`;
+                label.className = 'photo-name';
+                label.textContent = puzzle.name;
+                button.append(thumbnail, label);
+                button.addEventListener('click', () => {
+                    selectedPuzzle = index;
+                    renderPictureChoices();
+                });
+                pictureGrid.appendChild(button);
+            });
+        }
+
+        function handlePhotoUpload(event) {
+            const file = event.target.files && event.target.files[0];
+            if (!file || !file.type.startsWith('image/')) return;
+
+            if (uploadedPuzzleUrl) URL.revokeObjectURL(uploadedPuzzleUrl);
+            uploadedPuzzleUrl = URL.createObjectURL(file);
+
+            const uploadedPuzzle = {
+                name: file.name ? file.name.replace(/\.[^.]+$/, '').slice(0, 28) || 'My photo' : 'My photo',
+                src: uploadedPuzzleUrl,
+                uploaded: true
+            };
+
+            const existingUploadedIndex = puzzles.findIndex(puzzle => puzzle.uploaded);
+            if (existingUploadedIndex >= 0) {
+                puzzles[existingUploadedIndex] = uploadedPuzzle;
+                selectedPuzzle = existingUploadedIndex;
+            } else {
+                puzzles.push(uploadedPuzzle);
+                selectedPuzzle = puzzles.length - 1;
+            }
+
+            event.target.value = '';
+            renderPictureChoices();
+        }
+
+        function startGame(keepPlaced = false) {
+            const [nextCols, nextRows] = sizeSelect.value.split('x').map(Number);
+            cols = nextCols;
+            rows = nextRows;
+            menu.style.display = 'none';
+            game.style.display = 'grid';
+            hasWon = false;
+            success.style.display = 'none';
+            guideVisible = true;
+            guideBtn.textContent = 'Hide Guide';
+            guideBtn.setAttribute('aria-pressed', 'true');
+            selectedPiece = null;
+            hoverPiece = null;
+
+            if (rafId) {
+                cancelAnimationFrame(rafId);
+                rafId = null;
+            }
+
+            image.onload = null;
+            image.onerror = null;
+
+            const selectedSrc = puzzles[selectedPuzzle].src;
+            const shouldKeepPlaced = keepPlaced && currentImageSrc === selectedSrc;
+            if (currentImageSrc !== selectedSrc || !image.complete) {
+                image.onload = () => {
+                    image.onload = null;
+                    image.onerror = null;
+                    buildPuzzle(shouldKeepPlaced);
+                };
+                image.onerror = () => {
+                    image.onload = null;
+                    image.onerror = null;
+                    showMenu();
+                    alert('Sorry, that photo could not be loaded.');
+                };
+                currentImageSrc = selectedSrc;
+                image.src = selectedSrc;
+                return;
+            }
+
+            buildPuzzle(keepPlaced);
+        }
+
+        function showMenu() {
+            game.style.display = 'none';
+            menu.style.display = 'grid';
+            success.style.display = 'none';
+            selectedPiece = null;
+            hoverPiece = null;
+            if (rafId) {
+                cancelAnimationFrame(rafId);
+                rafId = null;
+            }
+        }
+
+        function buildPuzzle(keepPlaced = false) {
+            const oldLocked = keepPlaced ? new Set(pieces.filter(p => p.locked).map(p => `${p.r},${p.c}`)) : new Set();
+            const toolbarHeight = document.querySelector('.toolbar').getBoundingClientRect().height;
+            const playW = Math.max(720, window.innerWidth);
+            const playH = Math.max(540, window.innerHeight - toolbarHeight);
+            const isNarrow = window.innerWidth < 760;
+            scale = Math.min(
+                (playW * (isNarrow ? 0.64 : 0.54)) / image.width,
+                (playH * (isNarrow ? 0.46 : 0.58)) / image.height,
+                0.82
+            );
+
+            boardW = Math.max(cols * 80, Math.floor((image.width * scale) / cols) * cols);
+            boardH = Math.max(rows * 80, Math.floor((image.height * scale) / rows) * rows);
+            cellW = boardW / cols;
+            cellH = boardH / rows;
+            tab = Math.max(18, Math.round(Math.min(cellW, cellH) * 0.22));
+
+            canvas.width = Math.round(playW);
+            canvas.height = Math.round(playH);
+            boardX = Math.round((canvas.width - boardW) / 2);
+            boardY = Math.round((canvas.height - boardH) / 2);
+
+            const edges = makeEdges();
+            pieces = [];
+            for (let r = 0; r < rows; r++) {
+                for (let c = 0; c < cols; c++) {
+                    const piece = new Piece(r, c, edges);
+                    if (oldLocked.has(`${r},${c}`)) piece.lock();
+                    pieces.push(piece);
+                }
+            }
+            scatterPieces(oldLocked);
+            updateCounter();
+            playSound('jigsawstart.mp3');
+
+            if (rafId) cancelAnimationFrame(rafId);
+            rafId = null;
+            render();
+        }
+
+        function makeEdges() {
+            const vertical = Array.from({ length: rows }, () => []);
+            const horizontal = Array.from({ length: rows - 1 }, () => []);
+
+            for (let r = 0; r < rows; r++) {
+                for (let c = 0; c < cols - 1; c++) {
+                    vertical[r][c] = makeEdgeShape();
+                }
+            }
+
+            for (let r = 0; r < rows - 1; r++) {
+                for (let c = 0; c < cols; c++) {
+                    horizontal[r][c] = makeEdgeShape();
+                }
+            }
+
+            return { vertical, horizontal };
+        }
+
+        function makeEdgeShape() {
+            const neck = randomBetween(0.06, 0.10);
+            const shoulder = randomBetween(0.04, 0.08);
+            const center = randomBetween(0.42, 0.58);
+            const width = randomBetween(0.34, 0.46);
+            const waist = randomBetween(0.26, 0.42);
+            const crown = randomBetween(0.68, 0.96);
+            const lean = randomBetween(-0.08, 0.08);
+            const wobble = randomBetween(-0.05, 0.05);
+            const left = clamp(center - width / 2, 0.14, 0.30);
+            const right = clamp(center + width / 2, 0.70, 0.86);
+
+            return {
+                dir: Math.random() > 0.5 ? 1 : -1,
+                left,
+                right,
+                neck,
+                shoulder,
+                waist,
+                crown,
+                lean,
+                wobble
+            };
+        }
+
+        function reverseEdge(edge) {
+            if (!edge) return null;
+            return {
+                dir: -edge.dir,
+                left: 1 - edge.right,
+                right: 1 - edge.left,
+                neck: edge.neck,
+                shoulder: edge.shoulder,
+                waist: edge.waist,
+                crown: edge.crown,
+                lean: -edge.lean,
+                wobble: -edge.wobble
+            };
+        }
+
+        function randomBetween(min, max) {
+            return min + Math.random() * (max - min);
+        }
+
+        class Piece {
+            constructor(r, c, edges) {
+                this.r = r;
+                this.c = c;
+                this.x = 0;
+                this.y = 0;
+                this.homeX = boardX + c * cellW;
+                this.homeY = boardY + r * cellH;
+                this.locked = false;
+                this.dragging = false;
+                this.edges = {
+                    top: r === 0 ? null : reverseEdge(edges.horizontal[r - 1][c]),
+                    right: c === cols - 1 ? 0 : edges.vertical[r][c],
+                    bottom: r === rows - 1 ? null : edges.horizontal[r][c],
+                    left: c === 0 ? null : reverseEdge(edges.vertical[r][c - 1])
+                };
+                this.path = makePiecePath(this.edges);
+            }
+
+            lock() {
+                this.x = this.homeX;
+                this.y = this.homeY;
+                this.locked = true;
+            }
+
+            draw() {
+                const lift = this.dragging ? 16 : (hoverPiece === this && !this.locked ? 8 : 0);
+                const raised = !this.locked;
+                const thickness = this.locked ? 1.1 : (this.dragging ? 5.5 : 3.2);
+
+                ctx.save();
+                ctx.translate(this.x + thickness * 0.42, this.y - lift + thickness);
+                ctx.fillStyle = this.locked ? 'rgba(150, 128, 92, 0.20)' : 'rgba(117, 88, 56, 0.42)';
+                ctx.shadowColor = this.dragging ? 'rgba(90, 62, 36, 0.34)' : 'rgba(88, 60, 34, 0.24)';
+                ctx.shadowBlur = this.locked ? 2 : (this.dragging ? 30 : 17);
+                ctx.shadowOffsetX = this.dragging ? 7 : 3;
+                ctx.shadowOffsetY = this.locked ? 1 : (this.dragging ? 18 : 8);
+                ctx.fill(this.path);
+                ctx.restore();
+
+                ctx.save();
+                ctx.translate(this.x, this.y - lift);
+                ctx.shadowColor = this.dragging ? 'rgba(94, 65, 38, 0.26)' : 'rgba(88, 60, 34, 0.18)';
+                ctx.shadowBlur = this.locked ? 2 : (this.dragging ? 26 : 12);
+                ctx.shadowOffsetX = this.locked ? 0 : (this.dragging ? 4 : 2);
+                ctx.shadowOffsetY = this.locked ? 1 : (this.dragging ? 14 : 6);
+                ctx.clip(this.path);
+                ctx.drawImage(
+                    image,
+                    -this.c * cellW,
+                    -this.r * cellH,
+                    boardW,
+                    boardH
+                );
+
+                const gloss = ctx.createLinearGradient(0, 0, cellW, cellH);
+                gloss.addColorStop(0, 'rgba(255, 255, 255, 0.18)');
+                gloss.addColorStop(0.38, 'rgba(255, 255, 255, 0.05)');
+                gloss.addColorStop(0.72, 'rgba(48, 35, 22, 0.03)');
+                gloss.addColorStop(1, 'rgba(48, 35, 22, 0.12)');
+                ctx.fillStyle = gloss;
+                ctx.fillRect(-tab, -tab, cellW + tab * 2, cellH + tab * 2);
+                ctx.restore();
+
+                ctx.save();
+                ctx.translate(this.x, this.y - lift);
+                ctx.lineJoin = 'round';
+
+                ctx.strokeStyle = raised ? 'rgba(255, 250, 236, 0.82)' : 'rgba(255, 250, 236, 0.30)';
+                ctx.lineWidth = raised ? 3.4 : 1.2;
+                ctx.shadowColor = 'rgba(255, 255, 255, 0.24)';
+                ctx.shadowBlur = raised ? 1.5 : 0;
+                ctx.shadowOffsetX = -1;
+                ctx.shadowOffsetY = -1;
+                ctx.stroke(this.path);
+
+                ctx.shadowColor = 'transparent';
+                ctx.strokeStyle = raised ? 'rgba(72, 46, 28, 0.48)' : 'rgba(42, 52, 57, 0.16)';
+                ctx.lineWidth = raised ? (this.dragging ? 2.6 : 1.7) : 0.75;
+                ctx.shadowColor = raised ? 'rgba(60, 38, 22, 0.18)' : 'transparent';
+                ctx.shadowBlur = raised ? 1.5 : 0;
+                ctx.shadowOffsetX = 1.25;
+                ctx.shadowOffsetY = 1.25;
+                ctx.stroke(this.path);
+
+                ctx.shadowColor = 'transparent';
+                ctx.strokeStyle = this.dragging ? 'rgba(212, 155, 42, 0.78)' : (raised ? 'rgba(34, 38, 34, 0.25)' : 'rgba(42, 52, 57, 0.12)');
+                ctx.lineWidth = this.dragging ? 3 : 0.9;
+                ctx.stroke(this.path);
+                ctx.restore();
+            }
+
+            contains(x, y) {
+                return ctx.isPointInPath(this.path, x - this.x, y - this.y);
+            }
+        }
+
+        function makePiecePath(edges) {
+            const path = new Path2D();
+            path.moveTo(0, 0);
+            addEdge(path, 0, 0, cellW, 0, 0, -1, edges.top);
+            addEdge(path, cellW, 0, cellW, cellH, 1, 0, edges.right);
+            addEdge(path, cellW, cellH, 0, cellH, 0, 1, edges.bottom);
+            addEdge(path, 0, cellH, 0, 0, -1, 0, edges.left);
+            path.closePath();
+            return path;
+        }
+
+        function addEdge(path, x1, y1, x2, y2, nx, ny, edge) {
+            if (!edge) {
+                path.lineTo(x2, y2);
+                return;
+            }
+
+            const dx = x2 - x1;
+            const dy = y2 - y1;
+            const bump = tab * edge.dir;
+            const p = (t) => [x1 + dx * t, y1 + dy * t];
+            const q = (t, depth, tangent = 0) => {
+                const [x, y] = p(t);
+                return [x + nx * depth + dx * tangent, y + ny * depth + dy * tangent];
+            };
+
+            const left = edge.left;
+            const right = edge.right;
+            const mid = (left + right) / 2 + edge.lean * 0.04;
+            const leftNeck = left + edge.neck;
+            const rightNeck = right - edge.neck;
+            const crownLeft = mid - edge.shoulder;
+            const crownRight = mid + edge.shoulder;
+            const tangentWobble = edge.wobble * 0.05;
+
+            let a = p(left);
+            path.lineTo(a[0], a[1]);
+
+            let b = q(left + edge.neck * 0.30, bump * 0.02, tangentWobble);
+            let c = q(leftNeck - edge.neck * 0.18, bump * edge.waist, -tangentWobble);
+            let d = q(leftNeck, bump * edge.waist);
+            path.bezierCurveTo(b[0], b[1], c[0], c[1], d[0], d[1]);
+
+            b = q(leftNeck + edge.shoulder * 0.25, bump * edge.waist, -tangentWobble);
+            c = q(crownLeft, bump * edge.crown, edge.lean * 0.03);
+            d = q(mid, bump * (edge.crown + 0.06), edge.lean * 0.02);
+            path.bezierCurveTo(b[0], b[1], c[0], c[1], d[0], d[1]);
+
+            b = q(crownRight, bump * edge.crown, edge.lean * -0.03);
+            c = q(rightNeck - edge.shoulder * 0.25, bump * edge.waist, tangentWobble);
+            d = q(rightNeck, bump * edge.waist);
+            path.bezierCurveTo(b[0], b[1], c[0], c[1], d[0], d[1]);
+
+            b = q(rightNeck + edge.neck * 0.18, bump * edge.waist, tangentWobble);
+            c = q(right - edge.neck * 0.30, bump * 0.02, -tangentWobble);
+            d = p(right);
+            path.bezierCurveTo(b[0], b[1], c[0], c[1], d[0], d[1]);
+
+            path.lineTo(x2, y2);
+        }
+
+        function scatterPieces(lockedSet = new Set()) {
+            const loose = pieces.filter(p => !lockedSet.has(`${p.r},${p.c}`) && !p.locked);
+            const zones = getScatterZones();
+
+            loose.forEach((piece, index) => {
+                const zone = zones[index % zones.length];
+                const slot = Math.floor(index / zones.length);
+                const xCount = Math.max(1, Math.floor(zone.w / (cellW * 0.62)));
+                const yCount = Math.max(1, Math.floor(zone.h / (cellH * 0.62)));
+                const col = slot % xCount;
+                const row = Math.floor(slot / xCount) % yCount;
+                const xStep = zone.w / xCount;
+                const yStep = zone.h / yCount;
+                const jitterX = (Math.random() - 0.5) * Math.min(tab * 0.9, xStep * 0.34);
+                const jitterY = (Math.random() - 0.5) * Math.min(tab * 0.9, yStep * 0.34);
+                piece.x = zone.x + col * xStep + (xStep - cellW) / 2 + jitterX;
+                piece.y = zone.y + row * yStep + (yStep - cellH) / 2 + jitterY;
+                piece.x = clamp(piece.x, tab * 1.25, canvas.width - cellW - tab * 1.75);
+                piece.y = clamp(piece.y, tab * 1.25, canvas.height - cellH - tab * 1.75);
+                piece.locked = false;
+                piece.dragging = false;
+            });
+
+            pieces.sort(() => Math.random() - 0.5);
+            selectedPiece = null;
+            hoverPiece = null;
+        }
+
+        function getScatterZones() {
+            const gap = tab * 0.75;
+            const margin = tab * 0.7;
+            const centerBandTop = Math.max(margin, boardY - cellH * 0.2);
+            const centerBandBottom = Math.min(canvas.height - margin, boardY + boardH + cellH * 0.2);
+            return [
+                {
+                    name: 'top',
+                    x: margin,
+                    y: margin,
+                    w: canvas.width - margin * 2,
+                    h: boardY - margin - gap
+                },
+                {
+                    name: 'right',
+                    x: boardX + boardW + gap,
+                    y: centerBandTop,
+                    w: canvas.width - boardX - boardW - gap - margin,
+                    h: centerBandBottom - centerBandTop
+                },
+                {
+                    name: 'bottom',
+                    x: margin,
+                    y: boardY + boardH + gap,
+                    w: canvas.width - margin * 2,
+                    h: canvas.height - boardY - boardH - gap - margin
+                },
+                {
+                    name: 'left',
+                    x: margin,
+                    y: centerBandTop,
+                    w: boardX - gap - margin,
+                    h: centerBandBottom - centerBandTop
+                }
+            ].filter(zone => zone.w > cellW * 0.5 && zone.h > cellH * 0.5);
+        }
+
+        function clamp(value, min, max) {
+            return Math.max(min, Math.min(max, value));
+        }
+
+        function render() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            drawTable();
+            pieces.filter(p => p.locked).forEach(p => p.draw());
+            pieces.filter(p => !p.locked && p !== hoverPiece && p !== selectedPiece).forEach(p => p.draw());
+            if (hoverPiece && hoverPiece !== selectedPiece) hoverPiece.draw();
+            if (selectedPiece) selectedPiece.draw();
+            rafId = requestAnimationFrame(render);
+        }
+
+        function drawTable() {
+            ctx.fillStyle = '#d3b58e';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            if (tableImage.complete && tableImage.naturalWidth) {
+                drawCoverImage(tableImage, 0, 0, canvas.width, canvas.height);
+            }
+
+            ctx.save();
+            ctx.fillStyle = 'rgba(248, 242, 230, 0.82)';
+            ctx.strokeStyle = 'rgba(112, 96, 72, 0.34)';
+            ctx.lineWidth = 2;
+            roundRect(ctx, boardX - 10, boardY - 10, boardW + 20, boardH + 20, 6);
+            ctx.fill();
+            ctx.stroke();
+
+            if (guideVisible) {
+                ctx.globalAlpha = 0.28;
+                ctx.drawImage(image, boardX, boardY, boardW, boardH);
+                ctx.globalAlpha = 1;
+            }
+
+            ctx.strokeStyle = 'rgba(62, 72, 78, 0.18)';
+            ctx.lineWidth = 1;
+            for (let c = 1; c < cols; c++) {
+                ctx.beginPath();
+                ctx.moveTo(boardX + c * cellW, boardY);
+                ctx.lineTo(boardX + c * cellW, boardY + boardH);
+                ctx.stroke();
+            }
+            for (let r = 1; r < rows; r++) {
+                ctx.beginPath();
+                ctx.moveTo(boardX, boardY + r * cellH);
+                ctx.lineTo(boardX + boardW, boardY + r * cellH);
+                ctx.stroke();
+            }
+            ctx.restore();
+        }
+
+        function drawCoverImage(sourceImage, x, y, w, h) {
+            const sourceRatio = sourceImage.naturalWidth / sourceImage.naturalHeight;
+            const targetRatio = w / h;
+            let sourceW = sourceImage.naturalWidth;
+            let sourceH = sourceImage.naturalHeight;
+            let sourceX = 0;
+            let sourceY = 0;
+
+            if (sourceRatio > targetRatio) {
+                sourceW = sourceImage.naturalHeight * targetRatio;
+                sourceX = (sourceImage.naturalWidth - sourceW) / 2;
+            } else {
+                sourceH = sourceImage.naturalWidth / targetRatio;
+                sourceY = (sourceImage.naturalHeight - sourceH) / 2;
+            }
+
+            ctx.drawImage(sourceImage, sourceX, sourceY, sourceW, sourceH, x, y, w, h);
+        }
+
+        function roundRect(context, x, y, w, h, radius) {
+            const r = Math.min(radius, w / 2, h / 2);
+            context.beginPath();
+            context.moveTo(x + r, y);
+            context.lineTo(x + w - r, y);
+            context.quadraticCurveTo(x + w, y, x + w, y + r);
+            context.lineTo(x + w, y + h - r);
+            context.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+            context.lineTo(x + r, y + h);
+            context.quadraticCurveTo(x, y + h, x, y + h - r);
+            context.lineTo(x, y + r);
+            context.quadraticCurveTo(x, y, x + r, y);
+            context.closePath();
+        }
+
+        function onPointerDown(event) {
+            const point = canvasPoint(event);
+            for (let i = pieces.length - 1; i >= 0; i--) {
+                const piece = pieces[i];
+                if (!piece.locked && piece.contains(point.x, point.y)) {
+                    selectedPiece = piece;
+                    hoverPiece = piece;
+                    pointerOffset.x = point.x - piece.x;
+                    pointerOffset.y = point.y - piece.y;
+                    piece.dragging = true;
+                    canvas.classList.add('dragging');
+                    canvas.setPointerCapture(event.pointerId);
+                    pieces.splice(i, 1);
+                    pieces.push(piece);
+                    return;
+                }
+            }
+        }
+
+        function onPointerMove(event) {
+            const point = canvasPoint(event);
+            if (selectedPiece) {
+                selectedPiece.x = clamp(point.x - pointerOffset.x, tab * 1.1, canvas.width - cellW - tab * 1.6);
+                selectedPiece.y = clamp(point.y - pointerOffset.y, tab * 1.1, canvas.height - cellH - tab * 1.6);
+                return;
+            }
+
+            hoverPiece = null;
+            for (let i = pieces.length - 1; i >= 0; i--) {
+                const piece = pieces[i];
+                if (!piece.locked && piece.contains(point.x, point.y)) {
+                    hoverPiece = piece;
+                    break;
+                }
+            }
+        }
+
+        function onPointerUp(event) {
+            if (!selectedPiece) return;
+
+            const piece = selectedPiece;
+            piece.dragging = false;
+            selectedPiece = null;
+            canvas.classList.remove('dragging');
+            if (canvas.hasPointerCapture(event.pointerId)) canvas.releasePointerCapture(event.pointerId);
+
+            const distance = Math.hypot(piece.x - piece.homeX, piece.y - piece.homeY);
+            if (distance < Math.min(cellW, cellH) * 0.36) {
+                piece.lock();
+                playRandomPlacementSound();
+                updateCounter();
+                if (!hasWon && pieces.every(p => p.locked)) {
+                    hasWon = true;
+                    setTimeout(() => {
+                        success.style.display = 'grid';
+                    }, 500);
+                }
+            }
+        }
+
+        function canvasPoint(event) {
+            const rect = canvas.getBoundingClientRect();
+            return {
+                x: (event.clientX - rect.left) * (canvas.width / rect.width),
+                y: (event.clientY - rect.top) * (canvas.height / rect.height)
+            };
+        }
+
+        function updateCounter() {
+            const placed = pieces.filter(p => p.locked).length;
+            counter.textContent = `${placed} of ${pieces.length} placed`;
+        }
+
+        function playSound(src) {
+            try {
+                let baseAudio = soundCache.get(src);
+                if (!baseAudio) {
+                    baseAudio = new Audio(src);
+                    baseAudio.preload = 'auto';
+                    soundCache.set(src, baseAudio);
+                }
+
+                const audio = baseAudio.cloneNode();
+                audio.currentTime = 0;
+                const playPromise = audio.play();
+                if (playPromise && typeof playPromise.catch === 'function') {
+                    playPromise.catch(() => {});
+                }
+            } catch (error) {
+                console.warn(`Unable to play sound: ${src}`, error);
+            }
+        }
+
+        function playRandomPlacementSound() {
+            const randomSrc = placementSounds[Math.floor(Math.random() * placementSounds.length)];
+            playSound(randomSrc);
+        }
+
+        if (new URLSearchParams(window.location.search).has('play')) {
+            startGame();
+        }
+    </script>
+</body>
+</html>
