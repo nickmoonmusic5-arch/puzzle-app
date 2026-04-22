@@ -304,7 +304,7 @@
 <main class="app">
   <section class="play-area" aria-label="Snakes and ladders board">
     <div class="board-shell" id="boardShell">
-      <img class="board" id="boardImage" src="board.png" alt="Snakes and ladders board" draggable="false" />
+      <img class="board" id="boardImage" src="board.png" alt="Snakes and ladders board" draggable="false" decoding="async" fetchpriority="high" />
       <div class="token" id="token" aria-label="Player counter"></div>
     </div>
     <button class="dice-card" id="diceCard" type="button" aria-label="Roll Dice">
@@ -363,10 +363,13 @@ const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const finalSquare = 25;
 const diceAnimationImage = new Image();
 const diceFacesImage = new Image();
+diceAnimationImage.decoding = 'async';
+diceFacesImage.decoding = 'async';
 diceAnimationImage.src = 'DICE/diceanimationspritesheet.png';
 diceFacesImage.src = 'DICE/dicefaces.png';
 const soundtrack = new Audio('AUDIO/soundtrack.mp3');
 soundtrack.loop = true;
+soundtrack.preload = 'metadata';
 soundtrack.volume = 0.32;
 const diceRollSounds = ['AUDIO/dieroll1.mp3', 'AUDIO/dieroll2.mp3', 'AUDIO/dieroll3.mp3'];
 const playerMoveSounds = Array.from({ length: 6 }, (_, index) => `AUDIO/PLAYERMOVE${index + 1}.mp3`);
@@ -558,7 +561,26 @@ function preloadSoundBuffers() {
 }
 
 function preloadCoreSounds() {
-  return Promise.all(diceRollSounds.map(src => loadSoundBuffer(src)));
+  return Promise.all([...diceRollSounds, ...playerMoveSounds].map(src => loadSoundBuffer(src)));
+}
+
+function preloadRemainingSoundsGently() {
+  const remainingSounds = [...ladderSounds, snakeFallSound].filter(src => !soundBuffers.has(src));
+  let index = 0;
+
+  function loadNext() {
+    if (index >= remainingSounds.length) return;
+    loadSoundBuffer(remainingSounds[index]);
+    index += 1;
+    setTimeout(loadNext, 250);
+  }
+
+  const startLoading = () => setTimeout(loadNext, 1500);
+  if ('requestIdleCallback' in window) {
+    requestIdleCallback(startLoading, { timeout: 3000 });
+  } else {
+    setTimeout(startLoading, 2200);
+  }
 }
 
 function decodeImageWhenReady(img) {
@@ -579,6 +601,10 @@ function nextFrame() {
   return new Promise(resolve => requestAnimationFrame(() => resolve()));
 }
 
+function delay(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 function unlockAudioForIOS() {
   if (audioUnlocked) return;
   audioUnlocked = true;
@@ -587,11 +613,13 @@ function unlockAudioForIOS() {
 
 async function prepareOpeningAssets() {
   await nextFrame();
+  await nextFrame();
   await Promise.all([
     decodeImageWhenReady(boardImage),
     decodeImageWhenReady(diceFacesImage),
     decodeImageWhenReady(diceAnimationImage),
-    preloadCoreSounds()
+    preloadCoreSounds(),
+    delay(700)
   ]);
 }
 
@@ -931,11 +959,13 @@ async function startGameAudio() {
   startStatus.textContent = 'Getting the board ready...';
   unlockAudioForIOS();
   await prepareOpeningAssets();
+  startStatus.textContent = 'Ready to play.';
+  await nextFrame();
   audioStarted = true;
   startPanel.classList.add('hidden');
   setReadyState(true);
   message.textContent = 'Press Roll Dice when you are ready.';
-  setTimeout(preloadSoundBuffers, 700);
+  preloadRemainingSoundsGently();
 
   const playPromise = soundtrack.play();
   if (playPromise && typeof playPromise.catch === 'function') {
