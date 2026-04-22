@@ -235,11 +235,17 @@
     display: grid;
     place-items: center;
     padding: 22px;
-    background: rgba(238, 229, 210, 0.88);
+    background:
+      linear-gradient(rgba(238, 229, 210, 0.84), rgba(238, 229, 210, 0.92)),
+      url('board.png') center / min(820px, 120vw) auto no-repeat,
+      #eee5d2;
     backdrop-filter: blur(3px);
   }
   .start-panel.hidden {
     display: none;
+  }
+  .start-panel.loading {
+    cursor: wait;
   }
   .start-card {
     width: min(620px, 100%);
@@ -267,6 +273,35 @@
   .start-card button {
     min-height: 86px;
     font-size: clamp(23px, 3vw, 31px);
+  }
+  .start-panel.loading .start-card button {
+    display: none;
+  }
+  .start-loader {
+    width: min(280px, 80%);
+    height: 12px;
+    margin: 0 auto;
+    overflow: hidden;
+    border-radius: 999px;
+    background: rgba(84, 62, 35, 0.14);
+    border: 1px solid rgba(84, 62, 35, 0.18);
+    opacity: 0;
+  }
+  .start-panel.loading .start-loader {
+    opacity: 1;
+  }
+  .start-loader::before {
+    content: "";
+    display: block;
+    width: 45%;
+    height: 100%;
+    border-radius: inherit;
+    background: linear-gradient(90deg, #6f8a4b, #c39c43);
+    animation: loadSlide 1.15s ease-in-out infinite alternate;
+  }
+  @keyframes loadSlide {
+    from { transform: translateX(0); }
+    to { transform: translateX(125%); }
   }
   @media (max-width: 820px) {
     .app { grid-template-rows: minmax(0, 1fr) auto; }
@@ -307,7 +342,7 @@
       <img class="board" id="boardImage" src="board.png" alt="Snakes and ladders board" draggable="false" decoding="async" fetchpriority="high" />
       <div class="token" id="token" aria-label="Player counter"></div>
     </div>
-    <button class="dice-card" id="diceCard" type="button" aria-label="Roll Dice">
+    <button class="dice-card disabled" id="diceCard" type="button" aria-label="Roll Dice" disabled>
       <div class="dice-label">Dice</div>
       <div class="die" aria-live="polite">
         <canvas id="diceCanvas" width="360" height="360" aria-label="Dice face"></canvas>
@@ -326,7 +361,7 @@
   <section class="bottom-ui" aria-label="Game controls">
     <div class="message" id="message">Press Roll Dice when you are ready.</div>
     <div class="controls">
-      <button class="primary" id="rollBtn" type="button">Roll Dice</button>
+      <button class="primary" id="rollBtn" type="button" disabled>Roll Dice</button>
       <button class="secondary" id="restartBtn" type="button">Start Again</button>
       <button id="backBtn" type="button">Back to Room</button>
     </div>
@@ -336,6 +371,7 @@
   <div class="start-card">
     <h1 id="startTitle">Are you ready to play Snakes and Ladders?</h1>
     <p id="startStatus">Press the button to begin.</p>
+    <div class="start-loader" aria-hidden="true"></div>
     <button class="primary" id="startAudioBtn" type="button">Start Game</button>
   </div>
 </div>
@@ -355,6 +391,7 @@ const finishBackBtn = document.getElementById('finishBackBtn');
 const playAgainBtn = document.getElementById('playAgainBtn');
 const finishPanel = document.getElementById('finishPanel');
 const startPanel = document.getElementById('startPanel');
+const startTitle = document.getElementById('startTitle');
 const startStatus = document.getElementById('startStatus');
 const startAudioBtn = document.getElementById('startAudioBtn');
 
@@ -448,6 +485,7 @@ let busy = false;
 let lastRoll = 1;
 let audioStarted = false;
 let audioUnlocked = false;
+let inputGuardUntil = 0;
 
 function setDie(value) {
   lastRoll = value;
@@ -555,13 +593,11 @@ function loadSoundBuffer(src) {
 }
 
 function preloadSoundBuffers() {
-  soundSources.forEach(src => {
-    loadSoundBuffer(src);
-  });
+  return Promise.all(soundSources.map(src => loadSoundBuffer(src)));
 }
 
 function preloadCoreSounds() {
-  return Promise.all([...diceRollSounds, ...playerMoveSounds].map(src => loadSoundBuffer(src)));
+  return preloadSoundBuffers();
 }
 
 function preloadRemainingSoundsGently() {
@@ -619,7 +655,7 @@ async function prepareOpeningAssets() {
     decodeImageWhenReady(diceFacesImage),
     decodeImageWhenReady(diceAnimationImage),
     preloadCoreSounds(),
-    delay(700)
+    delay(1300)
   ]);
 }
 
@@ -869,6 +905,7 @@ function setReadyState(ready) {
 }
 
 async function rollDice() {
+  if (performance.now() < inputGuardUntil) return;
   if (busy || !audioStarted) return;
   busy = true;
   setReadyState(false);
@@ -954,18 +991,23 @@ function refreshDiceFaceWhenReady() {
 }
 
 async function startGameAudio() {
+  startPanel.classList.add('loading');
+  startPanel.setAttribute('aria-busy', 'true');
   startAudioBtn.disabled = true;
   startAudioBtn.textContent = 'Getting ready...';
-  startStatus.textContent = 'Getting the board ready...';
+  startTitle.textContent = 'Getting the game ready';
+  startStatus.textContent = 'Loading the board, dice and sounds.';
   unlockAudioForIOS();
   await prepareOpeningAssets();
   startStatus.textContent = 'Ready to play.';
-  await nextFrame();
+  await delay(450);
   audioStarted = true;
+  inputGuardUntil = performance.now() + 650;
   startPanel.classList.add('hidden');
+  startPanel.classList.remove('loading');
+  startPanel.removeAttribute('aria-busy');
   setReadyState(true);
   message.textContent = 'Press Roll Dice when you are ready.';
-  preloadRemainingSoundsGently();
 
   const playPromise = soundtrack.play();
   if (playPromise && typeof playPromise.catch === 'function') {
