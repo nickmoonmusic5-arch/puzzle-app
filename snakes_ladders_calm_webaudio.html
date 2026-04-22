@@ -1,0 +1,961 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Calm Snakes and Ladders</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    min-height: 100%;
+    background: #ece5d5;
+    color: #2f291d;
+    font-family: Arial, Helvetica, sans-serif;
+  }
+  body {
+    overflow: hidden;
+  }
+  .app {
+    width: 100vw;
+    height: 100vh;
+    display: grid;
+    grid-template-rows: 1fr auto;
+    background:
+      radial-gradient(circle at 18% 16%, rgba(255,255,255,0.42), transparent 24%),
+      linear-gradient(180deg, #f4eddf 0%, #e8dcc4 100%);
+  }
+  .play-area {
+    position: relative;
+    min-height: 0;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(240px, 340px);
+    align-items: center;
+    justify-items: center;
+    gap: clamp(10px, 1.5vw, 22px);
+    padding: 16px clamp(18px, 4vw, 54px) 8px;
+  }
+  .board-shell {
+    position: relative;
+    width: min(78vh, calc(100vw - 420px));
+    max-width: 680px;
+    justify-self: end;
+    aspect-ratio: 1;
+    border-radius: 12px;
+    box-shadow: 0 18px 42px rgba(75, 52, 24, 0.18);
+  }
+  .board {
+    display: block;
+    width: 100%;
+    height: 100%;
+    border-radius: 12px;
+    user-select: none;
+  }
+  .token {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: clamp(34px, 5.6vw, 58px);
+    height: clamp(34px, 5.6vw, 58px);
+    border-radius: 999px;
+    background:
+      radial-gradient(circle at 34% 28%, rgba(255,255,255,0.9), transparent 24%),
+      radial-gradient(circle at 50% 54%, #4f9f72 0%, #2f7a48 68%, #1f5534 100%);
+    border: 4px solid rgba(255,255,255,0.86);
+    box-shadow:
+      0 8px 16px rgba(39, 50, 28, 0.26),
+      inset 0 -5px 10px rgba(22, 61, 35, 0.26);
+    transform: translate(-50%, -50%);
+    transition: left 520ms ease, top 520ms ease;
+    z-index: 4;
+  }
+  .token::after {
+    content: "";
+    position: absolute;
+    inset: 29%;
+    border-radius: 999px;
+    background: rgba(255,255,255,0.18);
+  }
+  .dice-card {
+    width: min(330px, 100%);
+    min-height: 372px;
+    display: grid;
+    place-items: center;
+    align-content: center;
+    gap: 16px;
+    padding: 18px;
+    border-radius: 14px;
+    background: rgba(255,250,240,0.93);
+    border: 2px solid rgba(78, 58, 31, 0.16);
+    box-shadow: 0 10px 24px rgba(63, 43, 20, 0.14);
+    cursor: pointer;
+    justify-self: start;
+  }
+  .dice-card:hover { background: #f7f0df; }
+  .dice-card:active { transform: translateY(1px); }
+  .dice-card.disabled { opacity: 0.56; cursor: default; transform: none; }
+  .dice-label {
+    font-size: clamp(22px, 2.6vw, 30px);
+    font-weight: 800;
+    color: #4a3923;
+    text-align: center;
+  }
+  .die {
+    width: clamp(180px, 18vw, 238px);
+    height: clamp(180px, 18vw, 238px);
+    border-radius: 18px;
+    background: #fffdf8;
+    border: 4px solid #d0b98f;
+    box-shadow: inset 0 -4px 0 rgba(150, 105, 43, 0.1);
+    display: block;
+    padding: 10px;
+    overflow: hidden;
+  }
+  .die canvas {
+    width: 100%;
+    height: 100%;
+    display: block;
+    border-radius: 14px;
+  }
+  .pip {
+    width: clamp(16px, 1.9vw, 24px);
+    height: clamp(16px, 1.9vw, 24px);
+    border-radius: 999px;
+    background: #4a3923;
+    place-self: center;
+    opacity: 0;
+  }
+  .pip.show { opacity: 1; }
+  .dice-hint {
+    color: #5d492c;
+    font-size: clamp(16px, 1.8vw, 20px);
+    line-height: 1.25;
+    font-weight: 800;
+    text-align: center;
+  }
+  .bottom-ui {
+    position: relative;
+    z-index: 8;
+    display: grid;
+    gap: 10px;
+    padding: 10px 18px 16px;
+  }
+  .message {
+    justify-self: center;
+    max-width: min(820px, 100%);
+    min-height: 58px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 12px 18px;
+    border-radius: 10px;
+    background: rgba(255,255,255,0.94);
+    border: 2px solid rgba(78, 58, 31, 0.15);
+    box-shadow: 0 8px 20px rgba(63,43,20,0.10);
+    font-size: clamp(19px, 2.2vw, 26px);
+    line-height: 1.25;
+    font-weight: 800;
+    text-align: center;
+  }
+  .controls {
+    width: min(980px, 100%);
+    justify-self: center;
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 12px;
+    padding: 12px;
+    border-radius: 12px;
+    background: rgba(255,255,255,0.9);
+    border: 2px solid rgba(78, 58, 31, 0.14);
+    box-shadow: 0 10px 24px rgba(63,43,20,0.12);
+  }
+  button {
+    appearance: none;
+    min-height: 64px;
+    border: 2px solid rgba(58,46,28,0.16);
+    border-radius: 10px;
+    background: #fffaf0;
+    color: #2f291d;
+    font: inherit;
+    font-size: clamp(18px, 2vw, 22px);
+    font-weight: 800;
+    cursor: pointer;
+  }
+  button:hover { background: #f1f7e9; }
+  button:active { transform: translateY(1px); }
+  button:disabled {
+    opacity: 0.48;
+    cursor: default;
+    transform: none;
+  }
+  .primary {
+    background: #2f7a48;
+    color: white;
+    border-color: #1f5d35;
+  }
+  .secondary {
+    background: #e7f3ff;
+  }
+  .finish-panel {
+    position: absolute;
+    inset: 0;
+    display: none;
+    place-items: center;
+    padding: 18px;
+    background: rgba(57, 43, 24, 0.18);
+    z-index: 10;
+  }
+  .finish-panel.open { display: grid; }
+  .finish-card {
+    width: min(520px, 100%);
+    display: grid;
+    gap: 16px;
+    padding: 22px;
+    border-radius: 12px;
+    background: rgba(255,250,240,0.98);
+    border: 2px solid rgba(78, 58, 31, 0.16);
+    box-shadow: 0 20px 48px rgba(63,43,20,0.22);
+    text-align: center;
+  }
+  .finish-card h1 {
+    margin: 0;
+    font-size: clamp(28px, 4vw, 40px);
+  }
+  .finish-card p {
+    margin: 0;
+    font-size: 21px;
+    line-height: 1.35;
+    font-weight: 700;
+    color: #4a3923;
+  }
+  .start-panel {
+    position: fixed;
+    inset: 0;
+    z-index: 20;
+    display: grid;
+    place-items: center;
+    padding: 22px;
+    background: rgba(238, 229, 210, 0.88);
+    backdrop-filter: blur(3px);
+  }
+  .start-panel.hidden {
+    display: none;
+  }
+  .start-card {
+    width: min(620px, 100%);
+    display: grid;
+    gap: 18px;
+    padding: clamp(22px, 4vw, 34px);
+    border-radius: 14px;
+    background: rgba(255,250,240,0.98);
+    border: 2px solid rgba(78, 58, 31, 0.16);
+    box-shadow: 0 22px 54px rgba(63,43,20,0.22);
+    text-align: center;
+  }
+  .start-card h1 {
+    margin: 0;
+    font-size: clamp(30px, 4.4vw, 46px);
+    line-height: 1.1;
+  }
+  .start-card p {
+    margin: 0;
+    color: #5d492c;
+    font-size: clamp(19px, 2.4vw, 25px);
+    line-height: 1.3;
+    font-weight: 800;
+  }
+  .start-card button {
+    min-height: 86px;
+    font-size: clamp(23px, 3vw, 31px);
+  }
+  @media (max-width: 820px) {
+    .app { grid-template-rows: minmax(0, 1fr) auto; }
+    .play-area {
+      grid-template-columns: 1fr;
+      grid-template-rows: minmax(0, 1fr) auto;
+      padding: 10px 10px 4px;
+      align-items: start;
+      gap: 8px;
+    }
+    .board-shell { width: min(68vh, 96vw); justify-self: center; }
+    .dice-card {
+      position: absolute;
+      right: 12px;
+      top: 12px;
+      width: 108px;
+      min-height: 132px;
+      padding: 9px;
+      gap: 6px;
+    }
+    .die { width: 62px; height: 62px; padding: 7px; border-radius: 12px; border-width: 3px; }
+    .pip { width: 9px; height: 9px; }
+    .dice-label { font-size: 15px; }
+    .dice-hint { font-size: 13px; }
+    .bottom-ui { padding: 8px 10px 10px; gap: 8px; }
+    .controls { grid-template-columns: 1fr; gap: 8px; padding: 9px; }
+    button { min-height: 54px; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .token { transition-duration: 80ms; }
+  }
+</style>
+</head>
+<body>
+<main class="app">
+  <section class="play-area" aria-label="Snakes and ladders board">
+    <div class="board-shell" id="boardShell">
+      <img class="board" id="boardImage" src="board.png" alt="Snakes and ladders board" draggable="false" />
+      <div class="token" id="token" aria-label="Player counter"></div>
+    </div>
+    <button class="dice-card" id="diceCard" type="button" aria-label="Roll Dice">
+      <div class="dice-label">Dice</div>
+      <div class="die" aria-live="polite">
+        <canvas id="diceCanvas" width="360" height="360" aria-label="Dice face"></canvas>
+      </div>
+      <div class="dice-hint">Press to roll</div>
+    </button>
+    <div class="finish-panel" id="finishPanel" role="dialog" aria-modal="true" aria-labelledby="finishTitle">
+      <div class="finish-card">
+        <h1 id="finishTitle">You reached the sunny square.</h1>
+        <p>Lovely journey. The board is complete.</p>
+        <button class="primary" id="playAgainBtn" type="button">Play Again</button>
+        <button id="finishBackBtn" type="button">Back to Room</button>
+      </div>
+    </div>
+  </section>
+  <section class="bottom-ui" aria-label="Game controls">
+    <div class="message" id="message">Press Roll Dice when you are ready.</div>
+    <div class="controls">
+      <button class="primary" id="rollBtn" type="button">Roll Dice</button>
+      <button class="secondary" id="restartBtn" type="button">Start Again</button>
+      <button id="backBtn" type="button">Back to Room</button>
+    </div>
+  </section>
+</main>
+<div class="start-panel" id="startPanel" role="dialog" aria-modal="true" aria-labelledby="startTitle">
+  <div class="start-card">
+    <h1 id="startTitle">Are you ready to play Snakes and Ladders?</h1>
+    <p id="startStatus">Press the button to begin.</p>
+    <button class="primary" id="startAudioBtn" type="button">Start Game</button>
+  </div>
+</div>
+
+<script>
+const boardShell = document.getElementById('boardShell');
+const boardImage = document.getElementById('boardImage');
+const token = document.getElementById('token');
+const diceCard = document.getElementById('diceCard');
+const diceCanvas = document.getElementById('diceCanvas');
+const diceCtx = diceCanvas.getContext('2d');
+const message = document.getElementById('message');
+const rollBtn = document.getElementById('rollBtn');
+const restartBtn = document.getElementById('restartBtn');
+const backBtn = document.getElementById('backBtn');
+const finishBackBtn = document.getElementById('finishBackBtn');
+const playAgainBtn = document.getElementById('playAgainBtn');
+const finishPanel = document.getElementById('finishPanel');
+const startPanel = document.getElementById('startPanel');
+const startStatus = document.getElementById('startStatus');
+const startAudioBtn = document.getElementById('startAudioBtn');
+
+const returnUrl = new URLSearchParams(location.search).get('return');
+const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const finalSquare = 25;
+const diceAnimationImage = new Image();
+const diceFacesImage = new Image();
+diceAnimationImage.src = 'DICE/diceanimationspritesheet.png';
+diceFacesImage.src = 'DICE/dicefaces.png';
+const soundtrack = new Audio('AUDIO/soundtrack.mp3');
+soundtrack.loop = true;
+soundtrack.volume = 0.32;
+const diceRollSounds = ['AUDIO/dieroll1.mp3', 'AUDIO/dieroll2.mp3', 'AUDIO/dieroll3.mp3'];
+const playerMoveSounds = Array.from({ length: 6 }, (_, index) => `AUDIO/PLAYERMOVE${index + 1}.mp3`);
+const ladderSounds = Array.from({ length: 8 }, (_, index) => `AUDIO/LADDER${index + 1}.mp3`);
+const snakeFallSound = 'AUDIO/SNAKEFALL.mp3';
+const soundSources = [...diceRollSounds, ...playerMoveSounds, ...ladderSounds, snakeFallSound];
+const soundPools = new Map();
+const soundBuffers = new Map();
+const soundBufferPromises = new Map();
+let audioCtx = null;
+const diceAnimationFrames = Array.from({ length: 20 }, (_, index) => ({
+  x: (index % 4) * 256,
+  y: Math.floor(index / 4) * (1536 / 5),
+  w: 256,
+  h: 1536 / 5
+}));
+const diceFaceFrames = [
+  { x: 143, y: 112, w: 334, h: 320 },
+  { x: 604, y: 112, w: 332, h: 320 },
+  { x: 1065, y: 112, w: 332, h: 320 },
+  { x: 143, y: 582, w: 334, h: 320 },
+  { x: 604, y: 582, w: 332, h: 320 },
+  { x: 1065, y: 582, w: 332, h: 320 }
+];
+const jumps = {
+  2: { to: 11, kind: 'ladder', text: 'Up the ladder to square 11.' },
+  18: { to: 24, kind: 'ladder', text: 'Up the ladder to square 24.' },
+  13: { to: 3, kind: 'snake', text: 'A gentle slide to square 3.' },
+  16: { to: 6, kind: 'snake', text: 'A gentle slide to square 6.' },
+  22: { to: 11, kind: 'snake', text: 'A gentle slide to square 11.' }
+};
+const jumpPaths = {
+  '2-11': [
+    { x: 0.305, y: 0.835 },
+    { x: 0.285, y: 0.735 },
+    { x: 0.262, y: 0.630 },
+    { x: 0.238, y: 0.535 },
+    { x: 0.215, y: 0.455 }
+  ],
+  '18-24': [
+    { x: 0.520, y: 0.415 },
+    { x: 0.545, y: 0.330 },
+    { x: 0.570, y: 0.250 },
+    { x: 0.596, y: 0.170 },
+    { x: 0.620, y: 0.115 }
+  ],
+  '13-3': [
+    { x: 0.495, y: 0.410 },
+    { x: 0.565, y: 0.468 },
+    { x: 0.540, y: 0.545 },
+    { x: 0.485, y: 0.600 },
+    { x: 0.535, y: 0.670 },
+    { x: 0.520, y: 0.750 },
+    { x: 0.485, y: 0.830 }
+  ],
+  '16-6': [
+    { x: 0.805, y: 0.260 },
+    { x: 0.875, y: 0.330 },
+    { x: 0.820, y: 0.425 },
+    { x: 0.785, y: 0.515 },
+    { x: 0.850, y: 0.615 },
+    { x: 0.815, y: 0.735 }
+  ],
+  '22-11': [
+    { x: 0.335, y: 0.160 },
+    { x: 0.400, y: 0.245 },
+    { x: 0.360, y: 0.330 },
+    { x: 0.270, y: 0.370 },
+    { x: 0.255, y: 0.475 },
+    { x: 0.205, y: 0.570 }
+  ]
+};
+
+let square = 1;
+let busy = false;
+let lastRoll = 1;
+let audioStarted = false;
+let audioUnlocked = false;
+
+function setDie(value) {
+  lastRoll = value;
+  drawDiceFace(value);
+  diceCanvas.setAttribute('aria-label', `Rolled ${value}`);
+}
+
+function drawDiceFrame(image, frame, alpha = 1) {
+  diceCtx.clearRect(0, 0, diceCanvas.width, diceCanvas.height);
+  diceCtx.save();
+  diceCtx.globalAlpha = alpha;
+  diceCtx.drawImage(image, frame.x, frame.y, frame.w, frame.h, 0, 0, diceCanvas.width, diceCanvas.height);
+  diceCtx.restore();
+}
+
+function drawDiceFace(value) {
+  const frame = diceFaceFrames[value - 1];
+  diceCtx.clearRect(0, 0, diceCanvas.width, diceCanvas.height);
+  diceCtx.fillStyle = '#fffdf8';
+  diceCtx.fillRect(0, 0, diceCanvas.width, diceCanvas.height);
+
+  if (diceFacesImage.complete && diceFacesImage.naturalWidth) {
+    const margin = 8;
+    const availableW = diceCanvas.width - margin * 2;
+    const availableH = diceCanvas.height - margin * 2;
+    const scale = Math.min(availableW / frame.w, availableH / frame.h);
+    const drawW = frame.w * scale;
+    const drawH = frame.h * scale;
+    const drawX = (diceCanvas.width - drawW) / 2;
+    const drawY = (diceCanvas.height - drawH) / 2;
+    diceCtx.drawImage(diceFacesImage, frame.x, frame.y, frame.w, frame.h, drawX, drawY, drawW, drawH);
+    return;
+  }
+
+  diceCtx.strokeStyle = '#d0b98f';
+  diceCtx.lineWidth = 12;
+  diceCtx.beginPath();
+  diceCtx.roundRect(28, 70, 304, 220, 28);
+  diceCtx.fill();
+  diceCtx.stroke();
+  diceCtx.fillStyle = '#4a3923';
+  diceCtx.font = '900 140px Arial';
+  diceCtx.textAlign = 'center';
+  diceCtx.textBaseline = 'middle';
+  diceCtx.fillText(String(value), 180, 180);
+}
+
+function getAudioContext() {
+  const AudioContext = window.AudioContext || window.webkitAudioContext;
+  if (!AudioContext) return null;
+  if (!audioCtx) audioCtx = new AudioContext();
+  if (audioCtx.state === 'suspended') audioCtx.resume().catch(() => {});
+  return audioCtx;
+}
+
+function createAudio(src) {
+  const audio = new Audio(src);
+  audio.preload = 'auto';
+  audio.setAttribute('playsinline', '');
+  audio.load();
+  return audio;
+}
+
+function getSoundPool(src) {
+  let pool = soundPools.get(src);
+  if (!pool) {
+    pool = Array.from({ length: 4 }, () => createAudio(src));
+    soundPools.set(src, pool);
+  }
+  return pool;
+}
+
+function warmAudioContext() {
+  const ctx = getAudioContext();
+  if (!ctx) return;
+  try {
+    const source = ctx.createBufferSource();
+    source.buffer = ctx.createBuffer(1, 1, ctx.sampleRate);
+    source.connect(ctx.destination);
+    source.start(0);
+  } catch (err) {}
+}
+
+function loadSoundBuffer(src) {
+  if (window.location.protocol === 'file:') return Promise.resolve(null);
+  const ctx = getAudioContext();
+  if (!ctx) return Promise.resolve(null);
+  if (soundBuffers.has(src)) return Promise.resolve(soundBuffers.get(src));
+  if (soundBufferPromises.has(src)) return soundBufferPromises.get(src);
+
+  const promise = fetch(src)
+    .then(response => {
+      if (!response.ok) throw new Error(`Unable to load ${src}`);
+      return response.arrayBuffer();
+    })
+    .then(arrayBuffer => ctx.decodeAudioData(arrayBuffer))
+    .then(buffer => {
+      soundBuffers.set(src, buffer);
+      return buffer;
+    })
+    .catch(() => null);
+
+  soundBufferPromises.set(src, promise);
+  return promise;
+}
+
+function preloadSoundBuffers() {
+  soundSources.forEach(src => {
+    loadSoundBuffer(src);
+  });
+}
+
+function preloadCoreSounds() {
+  return Promise.all(diceRollSounds.map(src => loadSoundBuffer(src)));
+}
+
+function decodeImageWhenReady(img) {
+  if (!img) return Promise.resolve();
+  const waitForLoad = img.complete && img.naturalWidth
+    ? Promise.resolve()
+    : new Promise(resolve => {
+        img.addEventListener('load', resolve, { once: true });
+        img.addEventListener('error', resolve, { once: true });
+      });
+
+  return waitForLoad.then(() => {
+    if (typeof img.decode === 'function') return img.decode().catch(() => {});
+  });
+}
+
+function nextFrame() {
+  return new Promise(resolve => requestAnimationFrame(() => resolve()));
+}
+
+function unlockAudioForIOS() {
+  if (audioUnlocked) return;
+  audioUnlocked = true;
+  warmAudioContext();
+}
+
+async function prepareOpeningAssets() {
+  await nextFrame();
+  await Promise.all([
+    decodeImageWhenReady(boardImage),
+    decodeImageWhenReady(diceFacesImage),
+    decodeImageWhenReady(diceAnimationImage),
+    preloadCoreSounds()
+  ]);
+}
+
+function playOneShot(src, volume = 0.55) {
+  try {
+    const ctx = getAudioContext();
+    const buffer = soundBuffers.get(src);
+    if (ctx && buffer) {
+      const source = ctx.createBufferSource();
+      const gain = ctx.createGain();
+      source.buffer = buffer;
+      gain.gain.value = volume;
+      source.connect(gain);
+      gain.connect(ctx.destination);
+      source.start(0);
+      return;
+    }
+
+    loadSoundBuffer(src);
+    const pool = getSoundPool(src);
+    const audio = pool.find(item => item.paused || item.ended) || pool[0];
+    audio.pause();
+    audio.currentTime = 0;
+    audio.muted = false;
+    audio.volume = volume;
+    const playPromise = audio.play();
+    if (playPromise && typeof playPromise.catch === 'function') playPromise.catch(() => {});
+  } catch (err) {
+    // Audio is optional; the game should remain quiet if playback is blocked.
+  }
+}
+
+function playDiceSound() {
+  const src = diceRollSounds[Math.floor(Math.random() * diceRollSounds.length)];
+  playOneShot(src, 0.55);
+}
+
+function playMoveNote(index) {
+  const src = playerMoveSounds[Math.min(index, playerMoveSounds.length - 1)];
+  playOneShot(src, 0.48);
+}
+
+function playLadderNote(index) {
+  const src = ladderSounds[Math.min(index, ladderSounds.length - 1)];
+  playOneShot(src, 0.5);
+}
+
+function playSnakeFallSound() {
+  playOneShot(snakeFallSound, 0.56);
+}
+
+function drawRollingDiceFrame(index) {
+  const frame = diceAnimationFrames[index % diceAnimationFrames.length];
+  if (diceAnimationImage.complete && diceAnimationImage.naturalWidth) {
+    drawDiceFrame(diceAnimationImage, frame);
+    return;
+  }
+  setDie(1 + (index % 6));
+}
+
+function gridForSquare(n) {
+  const index = n - 1;
+  const rowFromBottom = Math.floor(index / 5);
+  const colInRow = index % 5;
+  const col = rowFromBottom % 2 === 0 ? colInRow : 4 - colInRow;
+  const row = 4 - rowFromBottom;
+  return { row, col };
+}
+
+function tokenPoint(n) {
+  return boardPointFromRatio(squareRatio(n));
+}
+
+function boardPointFromRatio(point) {
+  const board = boardShell.getBoundingClientRect();
+  return {
+    x: board.width * point.x,
+    y: board.height * point.y
+  };
+}
+
+function squareRatio(n) {
+  const board = boardShell.getBoundingClientRect();
+  const grid = {
+    x: 0.127,
+    y: 0.119,
+    size: 0.766
+  };
+  const cell = grid.size / 5;
+  const { row, col } = gridForSquare(n);
+  return {
+    x: grid.x + col * cell + cell * 0.5,
+    y: grid.y + row * cell + cell * 0.5
+  };
+}
+
+function placeToken(n) {
+  const point = tokenPoint(n);
+  token.style.left = `${point.x}px`;
+  token.style.top = `${point.y}px`;
+}
+
+function wait(ms) {
+  return new Promise(resolve => setTimeout(resolve, reducedMotion ? Math.min(ms, 120) : ms));
+}
+
+function smoothstep(t) {
+  return t * t * (3 - 2 * t);
+}
+
+function catmullRom(p0, p1, p2, p3, t) {
+  const t2 = t * t;
+  const t3 = t2 * t;
+  return {
+    x: 0.5 * ((2 * p1.x) + (-p0.x + p2.x) * t + (2 * p0.x - 5 * p1.x + 4 * p2.x - p3.x) * t2 + (-p0.x + 3 * p1.x - 3 * p2.x + p3.x) * t3),
+    y: 0.5 * ((2 * p1.y) + (-p0.y + p2.y) * t + (2 * p0.y - 5 * p1.y + 4 * p2.y - p3.y) * t2 + (-p0.y + 3 * p1.y - 3 * p2.y + p3.y) * t3)
+  };
+}
+
+function distanceBetween(a, b) {
+  const dx = b.x - a.x;
+  const dy = b.y - a.y;
+  return Math.hypot(dx, dy);
+}
+
+function buildSmoothRoute(points) {
+  const padded = [points[0], ...points, points[points.length - 1]];
+  const route = [{ point: points[0], distance: 0 }];
+  let total = 0;
+
+  for (let segment = 0; segment < points.length - 1; segment++) {
+    let previous = route[route.length - 1].point;
+    for (let step = 1; step <= 30; step++) {
+      const t = step / 30;
+      const point = catmullRom(
+        padded[segment],
+        padded[segment + 1],
+        padded[segment + 2],
+        padded[segment + 3],
+        t
+      );
+      total += distanceBetween(previous, point);
+      route.push({ point, distance: total });
+      previous = point;
+    }
+  }
+
+  return { route, total };
+}
+
+function pointOnRoute(routeData, progress) {
+  const targetDistance = routeData.total * progress;
+  const route = routeData.route;
+
+  for (let index = 1; index < route.length; index++) {
+    if (route[index].distance >= targetDistance) {
+      const previous = route[index - 1];
+      const next = route[index];
+      const span = next.distance - previous.distance || 1;
+      const t = (targetDistance - previous.distance) / span;
+      return {
+        x: previous.point.x + (next.point.x - previous.point.x) * t,
+        y: previous.point.y + (next.point.y - previous.point.y) * t
+      };
+    }
+  }
+
+  return route[route.length - 1].point;
+}
+
+function setTokenToRatio(point) {
+  const pixel = boardPointFromRatio(point);
+  token.style.left = `${pixel.x}px`;
+  token.style.top = `${pixel.y}px`;
+}
+
+function animateSmoothPath(points, duration, label, options = {}) {
+  return new Promise(resolve => {
+    if (reducedMotion) {
+      setTokenToRatio(points[points.length - 1]);
+      resolve();
+      return;
+    }
+
+    const routeData = buildSmoothRoute(points);
+    const started = performance.now();
+    const soundCues = options.soundCues || [];
+    let nextCue = 0;
+    token.style.transition = 'none';
+    message.textContent = label;
+
+    function frame(now) {
+      const progress = Math.min(1, (now - started) / duration);
+      const eased = smoothstep(progress);
+      while (nextCue < soundCues.length && progress >= soundCues[nextCue].at) {
+        soundCues[nextCue].play();
+        nextCue += 1;
+      }
+      setTokenToRatio(pointOnRoute(routeData, eased));
+      if (progress < 1) {
+        requestAnimationFrame(frame);
+      } else {
+        setTokenToRatio(points[points.length - 1]);
+        token.style.transition = '';
+        resolve();
+      }
+    }
+
+    requestAnimationFrame(frame);
+  });
+}
+
+async function animateTo(target, roll) {
+  const step = target > square ? 1 : -1;
+  let moveIndex = 0;
+  while (square !== target) {
+    square += step;
+    playMoveNote(moveIndex);
+    moveIndex = Math.min(moveIndex + 1, Math.max(roll - 1, 0));
+    placeToken(square);
+    message.textContent = `Moving to square ${square}.`;
+    await wait(560);
+  }
+}
+
+async function animateAlongJump(from, jump) {
+  const key = `${from}-${jump.to}`;
+  const path = [squareRatio(from), ...(jumpPaths[key] || []), squareRatio(jump.to)];
+  const label = jump.kind === 'ladder' ? 'Climbing the ladder.' : 'Sliding with the snake.';
+  const duration = jump.kind === 'ladder' ? 2150 : 2300;
+  const soundCues = jump.kind === 'ladder'
+    ? ladderSounds.slice(0, Math.min(7, ladderSounds.length)).map((_, index, cues) => ({
+        at: (index + 1) / (cues.length + 1),
+        play: () => playLadderNote(index)
+      }))
+    : [];
+  if (jump.kind === 'snake') playSnakeFallSound();
+  await animateSmoothPath(path, duration, label, { soundCues });
+  square = jump.to;
+  placeToken(square);
+}
+
+function setReadyState(ready) {
+  rollBtn.disabled = !ready;
+  diceCard.disabled = !ready;
+  diceCard.classList.toggle('disabled', !ready);
+}
+
+async function rollDice() {
+  if (busy || !audioStarted) return;
+  busy = true;
+  setReadyState(false);
+  finishPanel.classList.remove('open');
+  message.textContent = 'Rolling the dice.';
+  playDiceSound();
+
+  const rollTime = reducedMotion ? 180 : 720;
+  const start = performance.now();
+  let frameIndex = Math.floor(Math.random() * diceAnimationFrames.length);
+  while (performance.now() - start < rollTime) {
+    drawRollingDiceFrame(frameIndex++);
+    await wait(80);
+  }
+
+  const roll = 1 + Math.floor(Math.random() * 6);
+  setDie(roll);
+  await wait(260);
+  message.textContent = `You rolled ${roll}.`;
+  await wait(520);
+
+  const target = Math.min(finalSquare, square + roll);
+  await animateTo(target, roll);
+
+  if (square === finalSquare) {
+    finishGame();
+    return;
+  }
+
+  if (jumps[square]) {
+    const from = square;
+    const jump = jumps[square];
+    message.textContent = jump.text;
+    await wait(850);
+    await animateAlongJump(from, jump);
+  }
+
+  if (square === finalSquare) {
+    finishGame();
+    return;
+  }
+
+  message.textContent = `You are on square ${square}. Press Roll Dice when you are ready.`;
+  busy = false;
+  setReadyState(true);
+}
+
+function finishGame() {
+  message.textContent = 'You reached square 25. Lovely journey.';
+  finishPanel.classList.add('open');
+  busy = false;
+  setReadyState(false);
+}
+
+function restartGame() {
+  square = 1;
+  busy = false;
+  setReadyState(audioStarted);
+  finishPanel.classList.remove('open');
+  setDie(1);
+  refreshDiceFaceWhenReady();
+  placeToken(square);
+  message.textContent = 'Press Roll Dice when you are ready.';
+}
+
+function backToRoom() {
+  if (returnUrl) {
+    location.href = returnUrl;
+    return;
+  }
+  history.back();
+}
+
+function refreshDiceFaceWhenReady() {
+  if (!diceFacesImage.complete || !diceFacesImage.naturalWidth) return;
+
+  if (typeof diceFacesImage.decode === 'function') {
+    diceFacesImage.decode().then(() => setDie(lastRoll)).catch(() => setDie(lastRoll));
+    return;
+  }
+
+  setDie(lastRoll);
+}
+
+async function startGameAudio() {
+  startAudioBtn.disabled = true;
+  startAudioBtn.textContent = 'Getting ready...';
+  startStatus.textContent = 'Getting the board ready...';
+  unlockAudioForIOS();
+  await prepareOpeningAssets();
+  audioStarted = true;
+  startPanel.classList.add('hidden');
+  setReadyState(true);
+  message.textContent = 'Press Roll Dice when you are ready.';
+  setTimeout(preloadSoundBuffers, 700);
+
+  const playPromise = soundtrack.play();
+  if (playPromise && typeof playPromise.catch === 'function') {
+    playPromise.catch(() => {
+      message.textContent = 'Press Roll Dice when you are ready.';
+    });
+  }
+}
+
+diceCard.addEventListener('click', rollDice);
+rollBtn.addEventListener('click', rollDice);
+restartBtn.addEventListener('click', restartGame);
+backBtn.addEventListener('click', backToRoom);
+finishBackBtn.addEventListener('click', backToRoom);
+playAgainBtn.addEventListener('click', restartGame);
+startAudioBtn.addEventListener('click', startGameAudio);
+addEventListener('resize', () => placeToken(square));
+addEventListener('load', restartGame);
+diceFacesImage.addEventListener('load', refreshDiceFaceWhenReady);
+refreshDiceFaceWhenReady();
+</script>
+</body>
+</html>
